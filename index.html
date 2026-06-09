@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StockVantage - Dashboard Inventory Gudang</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Authentication Container (Login / Register) -->
+  <div id="auth-container" class="auth-container">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="brand-name">StockVantage</span>
+        <p class="brand-tagline">Warehouse Management System</p>
+      </div>
+
+      <!-- Login Form -->
+      <div id="login-form-wrapper" class="auth-form-wrapper active">
+        <h3>Masuk ke Akun</h3>
+        <p class="auth-subtitle">Masukkan email dan kata sandi Anda</p>
+        <form id="login-form">
+          <div class="form-group">
+            <label for="login-email">Alamat Email</label>
+            <input type="email" id="login-email" placeholder="nama@perusahaan.com" required>
+          </div>
+          <div class="form-group">
+            <label for="login-password">Kata Sandi</label>
+            <input type="password" id="login-password" placeholder="••••••••" required>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">Masuk</button>
+        </form>
+        <div class="auth-switch">
+          Belum punya akun? <a href="#" id="to-register-btn">Buat Akun Baru</a>
+        </div>
+      </div>
+
+      <!-- Register Form -->
+      <div id="register-form-wrapper" class="auth-form-wrapper">
+        <h3>Daftar Akun Baru</h3>
+        <p class="auth-subtitle">Lengkapi detail untuk mendaftarkan akun</p>
+        <form id="register-form">
+          <div class="form-group">
+            <label for="register-name">Nama Lengkap</label>
+            <input type="text" id="register-name" placeholder="Contoh: Budi Santoso" required>
+          </div>
+          <div class="form-group">
+            <label for="register-email">Alamat Email</label>
+            <input type="email" id="register-email" placeholder="nama@perusahaan.com" required>
+          </div>
+          <div class="form-group">
+            <label for="register-role">Tipe Pengguna (Role)</label>
+            <select id="register-role" required>
+              <option value="">Pilih Tipe</option>
+              <option value="Manager">Manager</option>
+              <option value="Supervisor">Supervisor</option>
+              <option value="Staff Admin">Staff Admin</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="register-password">Kata Sandi (Min. 6 Karakter)</label>
+            <input type="password" id="register-password" placeholder="Minimal 6 karakter" minlength="6" required>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">Daftar Akun</button>
+        </form>
+        <div class="auth-switch">
+          Sudah punya akun? <a href="#" id="to-login-btn">Masuk di sini</a>
+        </div>
+      </div>
+
+      <!-- Demo Accounts Info Badge -->
+      <div class="demo-badge">
+        <strong>Akun Demo Cepat (Email / Sandi):</strong><br>
+        • Manager: <span>manager@stockvantage.com</span> / <span>manager123</span><br>
+        • Supervisor: <span>supervisor@stockvantage.com</span> / <span>supervisor123</span><br>
+        • Staff Admin: <span>staff@stockvantage.com</span> / <span>staff123</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Container -->
+  <div class="app-container" id="app-container" style="display: none;">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-container">
+          <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="logo-text">StockVantage</span>
+        </div>
+      </div>
+      
+      <nav class="sidebar-menu">
+        <a href="#" class="menu-item active" data-tab="dashboard" id="menu-dashboard-link">
+          <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="9" />
+            <rect x="14" y="3" width="7" height="5" />
+            <rect x="14" y="12" width="7" height="9" />
+            <rect x="3" y="16" width="7" height="5" />
+          </svg>
+          <span>Dashboard</span>
+        </a>
+        <a href="#" class="menu-item" data-tab="inventory" id="menu-inventory-link">
+          <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+            <line x1="12" y1="22.08" x2="12" y2="12" />
+          </svg>
+          <span>Barang Masuk</span>
+        </a>
+        <a href="#" class="menu-item" data-tab="stockout" id="menu-stockout-link">
+          <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 19V5M5 12l7-7 7 7"/>
+          </svg>
+          <span>Keluar Barang</span>
+        </a>
+        <a href="#" class="menu-item" data-tab="warehouse" id="menu-warehouse-link">
+          <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="9" y1="3" x2="9" y2="21"></line>
+            <line x1="15" y1="3" x2="15" y2="21"></line>
+          </svg>
+          <span>Gudang</span>
+        </a>
+        <a href="#" class="menu-item" data-tab="users" id="menu-users-link">
+          <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <span>Kelola Pengguna</span>
+        </a>
+        <a href="#" class="menu-item logout-item" id="sidebar-logout" title="Keluar Sesi">
+          <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          <span>Logout</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="warehouse-badge">
+          <div class="badge-dot"></div>
+          <span>Gudang Utama A</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Top Header -->
+      <header class="main-header">
+        <div class="header-title-area">
+          <h1 id="page-title">Dashboard Overview</h1>
+          <p class="subtitle" id="page-subtitle">Ringkasan status inventaris gudang real-time.</p>
+        </div>
+        
+        <div class="header-actions">
+          <!-- Global Search (Dynamic) -->
+          <div class="search-wrapper">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="global-search" placeholder="Cari barang atau SKU...">
+          </div>
+
+          <!-- Theme Toggle -->
+          <button id="theme-toggle" class="theme-btn" aria-label="Toggle Theme">
+            <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </button>
+
+          <!-- Profile Badge -->
+          <div class="profile-badge">
+            <div class="avatar">N</div>
+            <div class="profile-info">
+              <span class="profile-name">Nixs Admin</span>
+              <span class="profile-role">Supervisor</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- TAB 1: Dashboard Overview -->
+      <section id="dashboard-tab" class="tab-content active">
+        <!-- KPI Cards Grid -->
+        <div class="kpi-grid">
+          <!-- Card 1: Total Items -->
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Total Barang</span>
+              <div class="kpi-icon-wrapper blue">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                </svg>
+              </div>
+            </div>
+            <div class="kpi-value" id="kpi-total-items">0</div>
+            <div class="kpi-footer">
+              <span class="trend up">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                +12%
+              </span>
+              <span class="trend-label">dari bulan lalu</span>
+            </div>
+          </div>
+
+          <!-- Card 2: Stock Value -->
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Total Nilai Aset</span>
+              <div class="kpi-icon-wrapper green">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="1" x2="12" y2="23"></line>
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+              </div>
+            </div>
+            <div class="kpi-value" id="kpi-total-value">Rp 0</div>
+            <div class="kpi-footer">
+              <span class="trend up">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                +8.4%
+              </span>
+              <span class="trend-label">penambahan stok</span>
+            </div>
+          </div>
+
+          <!-- Card 3: Low Stock Alerts -->
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Stok Menipis</span>
+              <div class="kpi-icon-wrapper orange">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+              </div>
+            </div>
+            <div class="kpi-value warning-color" id="kpi-low-stock">0</div>
+            <div class="kpi-footer">
+              <span class="trend-label font-warning" id="kpi-low-stock-desc">Perlu segera di-restock</span>
+            </div>
+          </div>
+
+          <!-- Card 4: Warehouse Capacity -->
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Utilitas Kapasitas</span>
+              <div class="kpi-icon-wrapper purple">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                  <polyline points="7.5 4.21 12 6.81 16.5 4.21" />
+                  <polyline points="7.5 19.79 7.5 14.67 3.27 12.23" />
+                  <polyline points="16.5 19.79 16.5 14.67 20.73 12.23" />
+                </svg>
+              </div>
+            </div>
+            <div class="kpi-value" id="kpi-capacity">0%</div>
+            <div class="kpi-footer-progress">
+              <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="kpi-capacity-bar" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dashboard Layout Grid -->
+        <div class="dashboard-grid">
+          <!-- Chart Panel -->
+          <div class="panel chart-panel">
+            <div class="panel-header">
+              <h2>Stok Barang Terbanyak</h2>
+              <span class="panel-subtitle">Visualisasi kuantitas 5 item teratas.</span>
+            </div>
+            <div class="chart-container">
+              <!-- Inline Dynamic SVG Chart Area -->
+              <div class="custom-chart" id="stock-chart">
+                <!-- Will be dynamically populated via JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Transactions -->
+          <div class="panel transaction-panel">
+            <div class="panel-header">
+              <h2>Aktivitas Terbaru</h2>
+              <span class="panel-subtitle">Log aktivitas masuk/keluar barang.</span>
+            </div>
+            <div class="transaction-list" id="transaction-log">
+              <!-- Dynamic List Items -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: Inventory List -->
+      <section id="inventory-tab" class="tab-content">
+        <!-- Control Bar -->
+        <div class="table-controls">
+          <div class="filters-group">
+            <!-- Filter Kategori -->
+            <div class="select-wrapper">
+              <select id="filter-category" class="filter-select">
+                <option value="all">Semua Kategori</option>
+                <option value="Elektronik">Elektronik</option>
+                <option value="Furnitur">Furnitur</option>
+                <option value="Alat Tulis">Alat Tulis</option>
+                <option value="Suku Cadang">Suku Cadang</option>
+                <option value="Lainnya">Lainnya</option>
+              </select>
+            </div>
+
+            <!-- Filter Status Stok -->
+            <div class="select-wrapper">
+              <select id="filter-status" class="filter-select">
+                <option value="all">Semua Status</option>
+                <option value="instock">Tersedia (Stok Cukup)</option>
+                <option value="lowstock">Stok Menipis</option>
+                <option value="outofstock">Stok Habis</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-controls-actions">
+            <!-- Total Items Count Indicator -->
+            <div class="items-count-indicator">
+              Menampilkan <span id="filtered-count">0</span> dari <span id="total-count">0</span> barang
+            </div>
+            <!-- Quick Add Button (Restricted to Inventory Tab) -->
+            <button id="quick-add-btn" class="btn btn-primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Tambah Barang</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Inventory Table Container -->
+        <div class="table-container">
+          <table class="inventory-table">
+            <thead>
+              <tr>
+                <th>Nama Barang / SKU</th>
+                <th>Kategori</th>
+                <th>Lokasi Rak</th>
+                <th>Harga Satuan</th>
+                <th>Kuantitas</th>
+                <th>Status</th>
+                <th class="actions-col">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="inventory-table-body">
+              <!-- Dynamically populated rows -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 4: Keluar Barang (Stock Out) -->
+      <section id="stockout-tab" class="tab-content">
+        <div class="panel form-panel">
+          <div class="panel-header">
+            <h2>Transaksi Keluar Barang</h2>
+            <span class="panel-subtitle">Catat pengurangan stok barang dari gudang.</span>
+          </div>
+          <form id="stockout-form" class="transaction-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="stockout-item-select">Pilih Barang <span class="required">*</span></label>
+                <select id="stockout-item-select" required>
+                  <option value="">-- Pilih Barang dari Inventaris --</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="stockout-qty">Kuantitas Keluar <span class="required">*</span></label>
+                <input type="number" id="stockout-qty" placeholder="Contoh: 5" min="1" required>
+              </div>
+              <div class="form-group">
+                <label for="stockout-recipient">Tujuan / Penerima <span class="required">*</span></label>
+                <input type="text" id="stockout-recipient" placeholder="Contoh: Divisi IT / PT. Maju Bersama" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="stockout-notes">Catatan Transaksi / Nomor DO</label>
+                <textarea id="stockout-notes" rows="3" placeholder="Contoh: DO-10492. Keperluan operasional kantor cabang."></textarea>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="stockout-date">Tanggal &amp; Waktu Keluar</label>
+                <input type="datetime-local" id="stockout-date" class="auto-date-input" required>
+              </div>
+            </div>
+            <div class="form-actions-row">
+              <button type="submit" class="btn btn-primary" style="background-color: var(--danger); border-color: var(--danger); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>Proses Keluar Barang</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- TAB 5: Gudang (Warehouse) - Two-Level Drill-Down -->
+      <section id="warehouse-tab" class="tab-content">
+
+        <!-- LEVEL 1: Warehouse Selector View -->
+        <div id="warehouse-list-view">
+          <div class="warehouse-overview-header-row">
+            <div class="warehouse-overview-header">
+              <h2>Pilih Gudang</h2>
+              <p class="subtitle">Klik salah satu gudang untuk melihat detail rak dan barang di dalamnya.</p>
+            </div>
+            <button id="add-warehouse-btn" class="btn btn-primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Tambah Gudang</span>
+            </button>
+          </div>
+          <div class="warehouse-cards-grid" id="warehouse-cards-container">
+            <!-- Dynamically populated via JS -->
+          </div>
+        </div>
+
+        <!-- LEVEL 2: Warehouse Detail View (hidden by default) -->
+        <div id="warehouse-detail-view" class="hidden">
+          <!-- Breadcrumb Navigation -->
+          <div class="warehouse-breadcrumb">
+            <button id="back-to-warehouses-btn" class="breadcrumb-back-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+              <span>Semua Gudang</span>
+            </button>
+            <span class="breadcrumb-separator">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </span>
+            <span class="breadcrumb-current" id="breadcrumb-warehouse-name">Gudang 1</span>
+          </div>
+
+          <!-- Warehouse Detail Header & Stats -->
+          <div class="warehouse-detail-header">
+            <div class="warehouse-detail-title-area">
+          <div>
+                <div class="warehouse-title-with-actions">
+                  <h2 id="warehouse-detail-name">Gudang 1</h2>
+                  <div class="warehouse-action-buttons">
+                    <button id="edit-warehouse-btn" class="btn btn-secondary btn-sm" title="Edit Gudang & Rak">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                      </svg>
+                      <span>Edit Gudang</span>
+                    </button>
+                    <button id="delete-warehouse-btn" class="btn btn-secondary btn-sm btn-delete" title="Hapus Gudang">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                      <span>Hapus Gudang</span>
+                    </button>
+                  </div>
+                </div>
+                <p class="subtitle" id="warehouse-detail-subtitle">Detail rak penyimpanan dan barang</p>
+              </div>
+            </div>
+            <div class="warehouse-detail-stats">
+              <div class="wh-stat-card">
+                <span class="wh-stat-value" id="detail-stat-total-items">0</span>
+                <span class="wh-stat-label">Jenis Barang</span>
+              </div>
+              <div class="wh-stat-card">
+                <span class="wh-stat-value" id="detail-stat-total-qty">0</span>
+                <span class="wh-stat-label">Total Unit</span>
+              </div>
+              <div class="wh-stat-card">
+                <span class="wh-stat-value" id="detail-stat-capacity">0%</span>
+                <span class="wh-stat-label">Kapasitas Terpakai</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Racks Grid for selected warehouse -->
+          <div class="racks-grid" id="warehouse-racks-container">
+            <!-- Dynamically populated via JS -->
+          </div>
+        </div>
+
+      </section>
+
+      <!-- TAB 6: Kelola Pengguna (User Management) -->
+      <section id="users-tab" class="tab-content">
+        <div class="table-controls">
+          <div class="header-title-area">
+            <h2>Kelola Pengguna Sistem</h2>
+            <p class="subtitle">Buat dan edit akun Supervisor dan Staff Admin.</p>
+          </div>
+          <button id="add-user-btn" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>Tambah User Baru</span>
+          </button>
+        </div>
+        <div class="table-container">
+          <table class="inventory-table">
+            <thead>
+              <tr>
+                <th>Nama Lengkap</th>
+                <th>Email / Username</th>
+                <th>Role / Hak Akses</th>
+                <th class="actions-col">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="users-table-body">
+              <!-- Dynamically populated users -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- Dialog Modal: Add / Edit Item -->
+  <div id="item-modal" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2 id="modal-title">Tambah Barang Baru</h2>
+        <button id="close-modal-btn" class="close-btn" aria-label="Close modal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      
+      <form id="item-form" class="modal-form">
+        <!-- Hidden input for identifying editing mode -->
+        <input type="hidden" id="form-item-id" value="">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="item-name">Nama Barang <span class="required">*</span></label>
+            <input type="text" id="item-name" placeholder="Contoh: Laptop Asus Zenbook" required>
+          </div>
+          <div class="form-group">
+            <label for="item-sku">SKU / Kode Barang <span class="required">*</span></label>
+            <input type="text" id="item-sku" placeholder="Contoh: EL-LPT-001" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="item-category">Kategori <span class="required">*</span></label>
+            <select id="item-category" required>
+              <option value="">Pilih Kategori</option>
+              <option value="Elektronik">Elektronik</option>
+              <option value="Furnitur">Furnitur</option>
+              <option value="Alat Tulis">Alat Tulis</option>
+              <option value="Suku Cadang">Suku Cadang</option>
+              <option value="Lainnya">Lainnya</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="item-location-warehouse">Gudang <span class="required">*</span></label>
+            <select id="item-location-warehouse" required>
+              <option value="">-- Pilih Gudang --</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="item-location-rack">Rak <span class="required">*</span></label>
+            <select id="item-location-rack" required disabled>
+              <option value="">-- Pilih Rak --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="item-location-slot">Nomor Slot / Posisi</label>
+            <input type="text" id="item-location-slot" placeholder="Contoh: 1, 2, 3 (opsional)">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="item-price">Harga Beli Satuan (Rp) <span class="required">*</span></label>
+            <input type="number" id="item-price" placeholder="Contoh: 12500000" min="0" required>
+          </div>
+          <div class="form-group">
+            <label for="item-quantity">Kuantitas Awal <span class="required">*</span></label>
+            <input type="number" id="item-quantity" placeholder="Contoh: 50" min="0" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="item-threshold">Batas Minimum Stok (Alert) <span class="required">*</span></label>
+            <input type="number" id="item-threshold" placeholder="Contoh: 10" min="1" required>
+          </div>
+          <div class="form-group" id="item-date-group">
+            <label for="item-date">Tanggal Masuk <span class="required">*</span></label>
+            <input type="datetime-local" id="item-date" class="auto-date-input" required>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="cancel-form-btn" class="btn btn-secondary">Batal</button>
+          <button type="submit" class="btn btn-primary" id="save-item-btn">Simpan Barang</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Dialog Modal: Add / Edit User (Manager Only) -->
+  <div id="user-modal" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2 id="user-modal-title">Tambah User Baru</h2>
+        <button id="close-user-modal-btn" class="close-btn" aria-label="Close modal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      
+      <form id="user-form" class="modal-form">
+        <!-- Hidden input for identifying editing mode -->
+        <input type="hidden" id="form-user-id" value="">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="user-name">Nama Lengkap <span class="required">*</span></label>
+            <input type="text" id="user-name" placeholder="Contoh: Danu Prasetya" required>
+          </div>
+          <div class="form-group">
+            <label for="user-email">Alamat Email <span class="required">*</span></label>
+            <input type="email" id="user-email" placeholder="nama@perusahaan.com" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="user-role">Tipe Pengguna (Role) <span class="required">*</span></label>
+            <select id="user-role" required>
+              <option value="">Pilih Tipe</option>
+              <option value="Supervisor">Supervisor</option>
+              <option value="Staff Admin">Staff Admin</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="user-password">Kata Sandi <span class="required">*</span></label>
+            <input type="password" id="user-password" placeholder="Minimal 6 karakter" minlength="6" required>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="cancel-user-btn" class="btn btn-secondary">Batal</button>
+          <button type="submit" class="btn btn-primary" id="save-user-btn">Simpan User</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Dialog Modal: Add / Edit Warehouse -->
+  <div id="warehouse-modal" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2 id="warehouse-modal-title">Tambah Gudang Baru</h2>
+        <button id="close-warehouse-modal-btn" class="close-btn" aria-label="Close modal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      
+      <form id="warehouse-form" class="modal-form">
+        <!-- Hidden input for identifying editing mode -->
+        <input type="hidden" id="form-warehouse-id" value="">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="warehouse-name">Nama Gudang <span class="required">*</span></label>
+            <input type="text" id="warehouse-name" placeholder="Contoh: Gudang 4" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="warehouse-description">Deskripsi <span class="required">*</span></label>
+            <input type="text" id="warehouse-description" placeholder="Contoh: Gudang utama untuk Elektronik" required>
+          </div>
+          <div class="form-group">
+            <label for="warehouse-color">Tema Warna <span class="required">*</span></label>
+            <select id="warehouse-color" required>
+              <option value="blue">Biru (Blue)</option>
+              <option value="green">Hijau (Green)</option>
+              <option value="purple">Ungu (Purple)</option>
+              <option value="orange">Oranye (Orange)</option>
+              <option value="red">Merah (Red)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Racks Management Section -->
+        <div class="warehouse-racks-section">
+          <div class="warehouse-racks-section-header">
+            <h3>Kelola Rak Gudang</h3>
+            <button type="button" id="add-rack-row-btn" class="btn btn-secondary btn-sm">
+              + Tambah Rak
+            </button>
+          </div>
+          <div id="warehouse-racks-rows-container">
+            <!-- Dynamic Rack rows will be added here -->
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="cancel-warehouse-form-btn" class="btn btn-secondary">Batal</button>
+          <button type="submit" class="btn btn-primary" id="save-warehouse-btn">Simpan Gudang</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification System -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
