@@ -456,7 +456,11 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Listen to port
-app.listen(PORT, () => {
-  console.log(`Server StockVantage WMS berjalan di http://localhost:${PORT}`);
-});
+// Listen to port (only if not running in a serverless environment like Vercel)
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Server StockVantage WMS berjalan di http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;
