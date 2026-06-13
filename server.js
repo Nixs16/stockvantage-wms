@@ -457,14 +457,15 @@ app.post('/api/transactions', async (req, res) => {
 
     // Insert Transaction log
     const trxId = `TRX-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const docNo = type === 'out' ? `SJ-${Date.now().toString().slice(-6)}` : trxId;
     const timestamp = customDate ? formatDatetimeLocal(customDate) : formatDateTime(new Date());
     await connection.query(
       'INSERT INTO transactions (id, item_id, item_name, type, quantity, timestamp, recipient, notes, doc_no) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [trxId, itemId, item.name, type, quantity, timestamp, recipient || null, notes || null, trxId]
+      [trxId, itemId, item.name, type, quantity, timestamp, recipient || null, notes || null, docNo]
     );
 
     await connection.commit();
-    res.json({ message: 'Transaksi berhasil diproses', newQuantity: newQty, transactionId: trxId });
+    res.json({ message: 'Transaksi berhasil diproses', newQuantity: newQty, transactionId: trxId, docNo: docNo });
   } catch (err) {
     await connection.rollback();
     res.status(500).json({ error: err.message });
