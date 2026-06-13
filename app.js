@@ -1395,6 +1395,20 @@ function generateStockoutPDF(itemsSubmitted, recipient, notes, dateStr, docNo) {
 
   const formattedDate = dateStr ? formatDatetimeLocal(dateStr) : formatDateTime(new Date());
 
+  // Get unique warehouses from the submitted items
+  const originWarehouses = [];
+  itemsSubmitted.forEach(it => {
+    const item = items.find(i => i.id === it.itemId);
+    if (item) {
+      const { whId } = parseLocationString(item.location);
+      const wh = WAREHOUSES.find(w => w.id === whId);
+      if (wh && !originWarehouses.includes(wh.name)) {
+        originWarehouses.push(wh.name);
+      }
+    }
+  });
+  const warehouseText = originWarehouses.length > 0 ? originWarehouses.join(', ') : "Multi-Gudang Terverifikasi";
+
   // Colors Palette
   const primaryColor = [30, 41, 59];   // Deep Slate
   const secondaryColor = [71, 85, 105]; // Slate Gray
@@ -1436,7 +1450,7 @@ function generateStockoutPDF(itemsSubmitted, recipient, notes, dateStr, docNo) {
   doc.text("GUDANG ASAL:", 18, 53);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.text("Multi-Gudang Terverifikasi", 18, 59);
+  doc.text(warehouseText, 18, 59);
   doc.text("Status: Terverifikasi Sistem", 18, 64);
 
   // Box 2: Penerima
