@@ -1928,18 +1928,8 @@ body.role-staff #menu-users-link {
   display: none !important;
 }
 
-body.role-staff #quick-add-btn {
-  display: none !important;
-}
-
-body.role-staff .action-btn.edit,
+/* Show actions column for staff to allow editing, but keep delete hidden */
 body.role-staff .action-btn.delete {
-  display: none !important;
-}
-
-/* Hide actions column header and body cell for staff */
-body.role-staff .actions-col,
-body.role-staff td.actions-col {
   display: none !important;
 }
 
