@@ -315,6 +315,22 @@ function updateUI() {
   renderInventoryTable();
   renderHistoryTable(); // Update history tab table
   
+  // Update sidebar warehouse badge
+  const whBadgeSpan = document.querySelector('.warehouse-badge span');
+  if (whBadgeSpan) {
+    if (currentUser) {
+      if (currentUser.role === 'Staff Admin') {
+        const assignedWhId = currentUser.assignedWarehouseId;
+        const wh = WAREHOUSES.find(w => w.id === assignedWhId);
+        whBadgeSpan.textContent = wh ? wh.name : (assignedWhId || 'Tidak Ada Gudang');
+      } else {
+        whBadgeSpan.textContent = 'Semua Gudang';
+      }
+    } else {
+      whBadgeSpan.textContent = '-';
+    }
+  }
+
   // Refresh whichever warehouse view is currently active
   if (activeWarehouseId) {
     renderWarehouseRacks(activeWarehouseId);
