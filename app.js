@@ -1557,7 +1557,6 @@ function renderHistoryTable() {
     const documentDisplay = tx.docNo || tx.id;
 
     tr.innerHTML = `
-      <td style="font-weight: 600; color: var(--text-main);">${documentDisplay}</td>
       <td>
         <div style="font-weight: 500;">${tx.itemName}</div>
       </td>
@@ -1565,6 +1564,7 @@ function renderHistoryTable() {
         <span class="status-badge ${typeBadge}">${typeLabel}</span>
       </td>
       <td style="font-weight: 600;">${tx.quantity} pcs</td>
+      <td style="font-weight: 600; color: var(--text-main);">${documentDisplay}</td>
       <td>${tx.recipient || '-'}</td>
       <td style="font-size: 0.8rem; color: var(--text-secondary); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${tx.notes || ''}">
         ${tx.notes || '-'}
