@@ -201,6 +201,8 @@ const userNameInput = document.getElementById('user-name');
 const userEmailInput = document.getElementById('user-email');
 const userRoleInput = document.getElementById('user-role');
 const userPasswordInput = document.getElementById('user-password');
+const userWarehouseRow = document.getElementById('user-warehouse-row');
+const userWarehouseSelect = document.getElementById('user-warehouse-select');
 
 // ==========================================================================
 // 3. Helper Functions
@@ -326,9 +328,10 @@ function updateUI() {
 function getStockoutItemOptionsHtml(selectedValue = '') {
   let allowedItems = items;
   if (currentUser && currentUser.role === 'Staff Admin') {
+    const assignedWhId = currentUser.assignedWarehouseId || '';
     allowedItems = items.filter(item => {
       const { whId } = parseLocationString(item.location);
-      return whId === 'wh-1';
+      return whId === assignedWhId;
     });
   }
 
@@ -348,7 +351,8 @@ function populateWarehouseDropdown(selectedWhId = '') {
 
   let allowedWarehouses = WAREHOUSES;
   if (currentUser && currentUser.role === 'Staff Admin') {
-    allowedWarehouses = WAREHOUSES.filter(w => w.id === 'wh-1');
+    const assignedWhId = currentUser.assignedWarehouseId || '';
+    allowedWarehouses = WAREHOUSES.filter(w => w.id === assignedWhId);
   }
 
   inputLocationWarehouse.innerHTML = '<option value="">-- Pilih Gudang --</option>';
@@ -361,8 +365,9 @@ function populateWarehouseDropdown(selectedWhId = '') {
   });
 
   if (currentUser && currentUser.role === 'Staff Admin' && !selectedWhId) {
-    inputLocationWarehouse.value = 'wh-1';
-    populateRackDropdown('wh-1');
+    const assignedWhId = currentUser.assignedWarehouseId || '';
+    inputLocationWarehouse.value = assignedWhId;
+    populateRackDropdown(assignedWhId);
   } else {
     // Trigger rack population for the pre-selected warehouse
     populateRackDropdown(selectedWhId);
@@ -693,13 +698,19 @@ function renderUsersTable() {
     }
 
     const roleBadgeClass = user.role === 'Manager' ? 'instock' : user.role === 'Supervisor' ? 'lowstock' : 'outofstock';
+    
+    let roleDisplay = user.role;
+    if (user.role === 'Staff Admin' && user.assignedWarehouseId) {
+      const wh = WAREHOUSES.find(w => w.id === user.assignedWarehouseId);
+      roleDisplay += ` (${wh ? wh.name : user.assignedWarehouseId})`;
+    }
 
     tr.innerHTML = `
       <td><strong>${user.name}</strong></td>
       <td>${user.email}</td>
       <td>
         <span class="status-badge ${roleBadgeClass}">
-          ${user.role}
+          ${roleDisplay}
         </span>
       </td>
       <td class="actions-col">
@@ -819,10 +830,11 @@ function renderInventoryTable() {
 
   // Perform filtration
   const filteredItems = items.filter(item => {
-    // 0. Staff Admin Access Restriction: Only Gudang 1 (wh-1)
+    // 0. Staff Admin Access Restriction: Only Assigned Warehouse
     if (currentUser && currentUser.role === 'Staff Admin') {
       const { whId } = parseLocationString(item.location);
-      if (whId !== 'wh-1') return false;
+      const assignedWhId = currentUser.assignedWarehouseId || '';
+      if (whId !== assignedWhId) return false;
     }
 
     // 1. Search Query Match
@@ -847,7 +859,7 @@ function renderInventoryTable() {
   // Display counters
   filteredCount.textContent = filteredItems.length;
   const staffItemsCount = (currentUser && currentUser.role === 'Staff Admin') 
-    ? items.filter(item => parseLocationString(item.location).whId === 'wh-1').length 
+    ? items.filter(item => parseLocationString(item.location).whId === (currentUser.assignedWarehouseId || '')).length 
     : items.length;
   totalCount.textContent = staffItemsCount;
 
@@ -1544,11 +1556,12 @@ function renderHistoryTable() {
       // Only allowed to see type === 'out' (barang keluar)
       if (tx.type !== 'out') return false;
       
-      // Only allowed to see items belonging to Gudang 1 (wh-1)
+      // Only allowed to see items belonging to their assigned warehouse
       const item = items.find(i => i.id === tx.itemId);
       if (item) {
         const { whId } = parseLocationString(item.location);
-        if (whId !== 'wh-1') return false;
+        const assignedWhId = currentUser.assignedWarehouseId || '';
+        if (whId !== assignedWhId) return false;
       } else {
         // Hide if item is not found in local active inventory to be safe
         return false;
@@ -1628,6 +1641,15 @@ function renderHistoryTable() {
 function openUserModal(editingEmail = null) {
   userForm.reset();
   
+  // Populate warehouse selection dropdown dynamically
+  userWarehouseSelect.innerHTML = '<option value="">-- Pilih Gudang yang Dikelola --</option>';
+  WAREHOUSES.forEach(wh => {
+    const opt = document.createElement('option');
+    opt.value = wh.id;
+    opt.textContent = wh.name;
+    userWarehouseSelect.appendChild(opt);
+  });
+  
   if (editingEmail) {
     const user = registeredUsers.find(u => u.email === editingEmail);
     if (!user) return;
@@ -1640,10 +1662,23 @@ function openUserModal(editingEmail = null) {
     userEmailInput.value = user.email;
     userRoleInput.value = user.role;
     userPasswordInput.value = user.password;
+    
+    if (user.role === 'Staff Admin') {
+      userWarehouseRow.style.display = 'block';
+      userWarehouseSelect.required = true;
+      userWarehouseSelect.value = user.assignedWarehouseId || '';
+    } else {
+      userWarehouseRow.style.display = 'none';
+      userWarehouseSelect.required = false;
+      userWarehouseSelect.value = '';
+    }
   } else {
     userModalTitle.textContent = 'Tambah User Baru';
     saveUserBtn.textContent = 'Tambah User';
     formUserId.value = '';
+    userWarehouseRow.style.display = 'none';
+    userWarehouseSelect.required = false;
+    userWarehouseSelect.value = '';
   }
 
   userModal.classList.add('active');
@@ -1652,7 +1687,10 @@ function openUserModal(editingEmail = null) {
 function closeUserModal() {
   userModal.classList.remove('active');
   userForm.reset();
+  userWarehouseRow.style.display = 'none';
+  userWarehouseSelect.required = false;
 }
+
 
 function attachUserTableListeners() {
   // Edit User Button
@@ -1688,6 +1726,17 @@ addUserBtn.addEventListener('click', () => openUserModal());
 closeUserModalBtn.addEventListener('click', closeUserModal);
 cancelUserBtn.addEventListener('click', closeUserModal);
 
+userRoleInput.addEventListener('change', () => {
+  if (userRoleInput.value === 'Staff Admin') {
+    userWarehouseRow.style.display = 'block';
+    userWarehouseSelect.required = true;
+  } else {
+    userWarehouseRow.style.display = 'none';
+    userWarehouseSelect.required = false;
+    userWarehouseSelect.value = '';
+  }
+});
+
 // User form submit
 userForm.addEventListener('submit', (e) => {
   e.preventDefault();
@@ -1696,13 +1745,14 @@ userForm.addEventListener('submit', (e) => {
   const email = userEmailInput.value.trim().toLowerCase();
   const role = userRoleInput.value;
   const password = userPasswordInput.value;
+  const assignedWarehouseId = role === 'Staff Admin' ? userWarehouseSelect.value : null;
 
   if (id) {
     // Edit User (AJAX)
     fetch(`/api/users/${encodeURIComponent(id)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, role, password })
+      body: JSON.stringify({ name, email, role, password, assignedWarehouseId })
     })
     .then(res => { if (!res.ok) throw new Error('Gagal memperbarui pengguna'); return res.json(); })
     .then(() => {
@@ -1716,7 +1766,7 @@ userForm.addEventListener('submit', (e) => {
     fetch('/api/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, role, password })
+      body: JSON.stringify({ name, email, role, password, assignedWarehouseId })
     })
     .then(res => { if (!res.ok) throw new Error('Gagal menambahkan pengguna'); return res.json(); })
     .then(() => {
@@ -1727,6 +1777,7 @@ userForm.addEventListener('submit', (e) => {
     .catch(err => showToast(err.message, 'error'));
   }
 });
+
 
 // ==========================================================================
 // 8.5. Warehouse Management (Add, Edit, Delete Warehouses & Racks)

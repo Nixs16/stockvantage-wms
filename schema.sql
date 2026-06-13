@@ -9,8 +9,10 @@ CREATE TABLE IF NOT EXISTS `users` (
   `email` VARCHAR(100) UNIQUE NOT NULL,
   `password` VARCHAR(255) NOT NULL,
   `role` VARCHAR(50) NOT NULL,
+  `assigned_warehouse_id` VARCHAR(50) DEFAULT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 
 -- 2. Table Warehouses
 CREATE TABLE IF NOT EXISTS `warehouses` (

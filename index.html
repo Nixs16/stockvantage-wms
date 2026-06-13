@@ -756,7 +756,14 @@
             <input type="password" id="user-password" placeholder="Minimal 6 karakter" minlength="6" required>
           </div>
         </div>
-
+        <div class="form-row" id="user-warehouse-row" style="display: none;">
+          <div class="form-group" style="width: 100%;">
+            <label for="user-warehouse-select">Gudang yang Dikelola <span class="required">*</span></label>
+            <select id="user-warehouse-select">
+              <option value="">-- Pilih Gudang yang Dikelola --</option>
+            </select>
+          </div>
+        </div>
         <div class="modal-footer">
           <button type="button" id="cancel-user-btn" class="btn btn-secondary">Batal</button>
           <button type="submit" class="btn btn-primary" id="save-user-btn">Simpan User</button>

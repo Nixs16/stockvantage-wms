@@ -40,7 +40,11 @@ async function initDb() {
         ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT NULL,
         ADD COLUMN IF NOT EXISTS doc_no VARCHAR(50) DEFAULT NULL;
       `);
-      console.log('Migrasi database transaksi sukses.');
+      await conn.query(`
+        ALTER TABLE users 
+        ADD COLUMN IF NOT EXISTS assigned_warehouse_id VARCHAR(50) DEFAULT NULL;
+      `);
+      console.log('Migrasi database transaksi & user sukses.');
     } catch (migError) {
       // Fallback for older MySQL engines that don't support ADD COLUMN IF NOT EXISTS syntax
       try {
@@ -51,6 +55,9 @@ async function initDb() {
       } catch (e) {}
       try {
         await conn.query("ALTER TABLE transactions ADD COLUMN doc_no VARCHAR(50) DEFAULT NULL;");
+      } catch (e) {}
+      try {
+        await conn.query("ALTER TABLE users ADD COLUMN assigned_warehouse_id VARCHAR(50) DEFAULT NULL;");
       } catch (e) {}
     }
     
@@ -107,7 +114,8 @@ app.post('/api/auth/login', async (req, res) => {
     res.json({
       name: user.name,
       email: user.email,
-      role: user.role
+      role: user.role,
+      assignedWarehouseId: user.assigned_warehouse_id
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -477,22 +485,30 @@ app.post('/api/transactions', async (req, res) => {
 // --- 5. USERS MANAGEMENT API (MANAGER ONLY) ---
 app.get('/api/users', async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT name, email, role FROM users ORDER BY name ASC');
-    res.json(rows);
+    const [rows] = await pool.query('SELECT name, email, role, assigned_warehouse_id FROM users ORDER BY name ASC');
+    res.json(rows.map(row => ({
+      name: row.name,
+      email: row.email,
+      role: row.role,
+      assignedWarehouseId: row.assigned_warehouse_id
+    })));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
 app.post('/api/users', async (req, res) => {
-  const { name, email, password, role } = req.body;
+  const { name, email, password, role, assignedWarehouseId } = req.body;
   try {
     // Check uniqueness
     const [existing] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
     if (existing.length > 0) {
       return res.status(400).json({ error: 'Email sudah terdaftar oleh pengguna lain' });
     }
-    await pool.query('INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)', [name, email, password, role]);
+    await pool.query(
+      'INSERT INTO users (name, email, password, role, assigned_warehouse_id) VALUES (?, ?, ?, ?, ?)',
+      [name, email, password, role, role === 'Staff Admin' ? (assignedWarehouseId || null) : null]
+    );
     res.status(201).json({ message: 'Pengguna berhasil dibuat' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -501,7 +517,7 @@ app.post('/api/users', async (req, res) => {
 
 app.put('/api/users/:email', async (req, res) => {
   const oldEmail = req.params.email;
-  const { name, email, password, role } = req.body;
+  const { name, email, password, role, assignedWarehouseId } = req.body;
   try {
     // Check email availability if changed
     if (email !== oldEmail) {
@@ -511,8 +527,8 @@ app.put('/api/users/:email', async (req, res) => {
       }
     }
     await pool.query(
-      'UPDATE users SET name = ?, email = ?, password = ?, role = ? WHERE email = ?',
-      [name, email, password, role, oldEmail]
+      'UPDATE users SET name = ?, email = ?, password = ?, role = ?, assigned_warehouse_id = ? WHERE email = ?',
+      [name, email, password, role, role === 'Staff Admin' ? (assignedWarehouseId || null) : null, oldEmail]
     );
     res.json({ message: 'Pengguna berhasil diperbarui' });
   } catch (err) {
