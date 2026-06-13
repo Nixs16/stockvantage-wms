@@ -1222,12 +1222,12 @@ stockoutForm.addEventListener('submit', (e) => {
     if (!res.ok) throw new Error('Gagal memproses transaksi');
     return res.json();
   })
-  .then(() => {
+  .then((data) => {
     showToast(`Stok ${item.name} berhasil dikeluarkan sebesar -${qty} unit.`, 'success');
     
     // Generate and download PDF Invoice/Surat Jalan
     try {
-      generateStockoutPDF(item, qty, recipient, notes, customDate);
+      generateStockoutPDF(item, qty, recipient, notes, customDate, data.transactionId);
     } catch (pdfErr) {
       console.error('PDF Generation error:', pdfErr);
       showToast('Gagal membuat dokumen PDF, transaksi tetap sukses.', 'warning');
@@ -1241,7 +1241,7 @@ stockoutForm.addEventListener('submit', (e) => {
 });
 
 // Function to generate Surat Jalan / Surat Pengeluaran Barang PDF
-function generateStockoutPDF(item, qty, recipient, notes, dateStr) {
+function generateStockoutPDF(item, qty, recipient, notes, dateStr, docNo) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({
     orientation: 'p',
@@ -1250,7 +1250,6 @@ function generateStockoutPDF(item, qty, recipient, notes, dateStr) {
   });
 
   const formattedDate = dateStr ? formatDatetimeLocal(dateStr) : formatDateTime(new Date());
-  const docNo = `SJ-${Date.now().toString().slice(-6)}`;
 
   // Colors & Styles
   doc.setFillColor(33, 150, 243); // Material Blue primary accent

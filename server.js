@@ -387,7 +387,7 @@ app.post('/api/transactions', async (req, res) => {
     );
 
     await connection.commit();
-    res.json({ message: 'Transaksi berhasil diproses', newQuantity: newQty });
+    res.json({ message: 'Transaksi berhasil diproses', newQuantity: newQty, transactionId: trxId });
   } catch (err) {
     await connection.rollback();
     res.status(500).json({ error: err.message });
