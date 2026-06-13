@@ -601,15 +601,19 @@ function renderWarehouseRacks(warehouseId) {
     if (rackItems.length === 0) {
       itemsHtml = `<div class="rack-empty-msg">Tidak ada barang di Rak ${rackKey}</div>`;
     } else {
-      itemsHtml = rackItems.map(item => `
-        <div class="rack-item-row">
-          <div class="rack-item-name" title="${item.name}">
-            ${item.name}
-            <span class="rack-item-sku">${item.sku}</span>
+      itemsHtml = rackItems.map(item => {
+        const arrivalDate = item.createdAt ? formatDateTime(new Date(item.createdAt)) : '-';
+        return `
+          <div class="rack-item-row" style="padding: 10px 0; border-bottom: 1px dashed var(--border-color); display: flex; align-items: center; justify-content: space-between;">
+            <div class="rack-item-name" title="${item.name}" style="display: flex; flex-direction: column; gap: 2px;">
+              <span style="font-weight: 600; color: var(--text-main);">${item.name}</span>
+              <span class="rack-item-sku" style="font-size: 0.75rem; color: var(--text-muted);">SKU: ${item.sku}</span>
+              <span class="rack-item-date" style="font-size: 0.7rem; color: var(--accent-blue); font-weight: 500; margin-top: 2px;">📅 Masuk: ${arrivalDate}</span>
+            </div>
+            <div class="rack-item-qty ${item.quantity <= item.minStock ? 'qty-low' : ''}" style="font-weight: bold;">${item.quantity} pcs</div>
           </div>
-          <div class="rack-item-qty ${item.quantity <= item.minStock ? 'qty-low' : ''}">${item.quantity} pcs</div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
     rackCard.innerHTML = `
@@ -843,15 +847,7 @@ function renderInventoryTable() {
       <td>${item.location}</td>
       <td class="item-price-cell">${formatCurrency(item.price)}</td>
       <td>
-        <div class="item-qty-container">
-          <button class="qty-adjust-btn minus" data-id="${item.id}" title="Kurangi 1 Stok">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </button>
-          <span class="item-qty-value">${item.quantity}</span>
-          <button class="qty-adjust-btn plus" data-id="${item.id}" title="Tambah 1 Stok">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </button>
-        </div>
+        <span class="item-qty-value" style="font-weight: 600; font-size: 1.05rem;">${item.quantity}</span>
       </td>
       <td>
         <span class="status-badge ${statusClass}">${statusLabel}</span>

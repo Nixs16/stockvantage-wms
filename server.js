@@ -135,7 +135,8 @@ app.get('/api/items', async (req, res) => {
         price: parseFloat(row.price),
         quantity: row.quantity,
         minStock: row.min_stock,
-        location: location
+        location: location,
+        createdAt: row.created_at
       };
     });
 
