@@ -1224,12 +1224,109 @@ stockoutForm.addEventListener('submit', (e) => {
   })
   .then(() => {
     showToast(`Stok ${item.name} berhasil dikeluarkan sebesar -${qty} unit.`, 'success');
+    
+    // Generate and download PDF Invoice/Surat Jalan
+    try {
+      generateStockoutPDF(item, qty, recipient, notes, customDate);
+    } catch (pdfErr) {
+      console.error('PDF Generation error:', pdfErr);
+      showToast('Gagal membuat dokumen PDF, transaksi tetap sukses.', 'warning');
+    }
+
     stockoutForm.reset();
     if (stockoutDate) stockoutDate.value = getCurrentDatetimeLocal();
     refreshData();
   })
   .catch(err => showToast(err.message, 'error'));
 });
+
+// Function to generate Surat Jalan / Surat Pengeluaran Barang PDF
+function generateStockoutPDF(item, qty, recipient, notes, dateStr) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({
+    orientation: 'p',
+    unit: 'mm',
+    format: 'a5' // A5 is standard compact size for invoice/surat jalan
+  });
+
+  const formattedDate = dateStr ? formatDatetimeLocal(dateStr) : formatDateTime(new Date());
+  const docNo = `SJ-${Date.now().toString().slice(-6)}`;
+
+  // Colors & Styles
+  doc.setFillColor(33, 150, 243); // Material Blue primary accent
+  doc.rect(0, 0, 148, 12, 'F'); // Top colored header bar
+
+  // Header Title
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("STOCKVANTAGE WMS - SURAT JALAN PENGELUARAN BARANG", 8, 8);
+
+  // Document Details Table Grid style
+  doc.setTextColor(50, 50, 50);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+
+  doc.text(`No. Dokumen  : ${docNo}`, 10, 22);
+  doc.text(`Tanggal          : ${formattedDate}`, 10, 27);
+  doc.text(`Penerima       : ${recipient}`, 10, 32);
+  doc.text(`Lokasi Asal    : ${item.location}`, 10, 37);
+
+  // Divider Line
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.5);
+  doc.line(10, 42, 138, 42);
+
+  // Table Headers
+  doc.setFont("helvetica", "bold");
+  doc.text("NAMA BARANG", 10, 48);
+  doc.text("SKU", 75, 48);
+  doc.text("KATEGORI", 105, 48);
+  doc.text("QTY", 130, 48);
+
+  doc.line(10, 51, 138, 51);
+
+  // Table Body Rows
+  doc.setFont("helvetica", "normal");
+  doc.text(item.name.substring(0, 32), 10, 57);
+  doc.text(item.sku, 75, 57);
+  doc.text(item.category, 105, 57);
+  doc.text(`${qty} pcs`, 130, 57);
+
+  doc.line(10, 61, 138, 61);
+
+  // Notes/Keperluan
+  doc.setFont("helvetica", "bold");
+  doc.text("Catatan Keperluan:", 10, 70);
+  doc.setFont("helvetica", "italic");
+  doc.text(notes || 'Tidak ada catatan tambahan.', 10, 75);
+
+  // Signatures Section (Tanda Tangan)
+  doc.setLineWidth(0.3);
+  doc.setFont("helvetica", "bold");
+  
+  // Left: Izin Keluar (Supervisor / Manager)
+  const leftSignX = 25;
+  const signY = 105;
+  doc.text("Pemberi Izin,", leftSignX - 5, signY);
+  doc.line(leftSignX - 15, signY + 18, leftSignX + 20, signY + 18); // Ttd line
+  doc.setFont("helvetica", "normal");
+  doc.text("( Supervisor / Manager )", leftSignX - 14, signY + 22);
+
+  // Right: Penerima Barang
+  doc.setFont("helvetica", "bold");
+  const rightSignX = 110;
+  doc.text("Penerima Barang,", rightSignX - 8, signY);
+  doc.line(rightSignX - 15, signY + 18, rightSignX + 20, signY + 18); // Ttd line
+  doc.setFont("helvetica", "normal");
+  doc.text(`( ${recipient.substring(0, 16)} )`, rightSignX - 10, signY + 22);
+
+  // Border frame decoration
+  doc.rect(5, 5, 138, 195); 
+
+  // Save/Download PDF
+  doc.save(`Surat_Jalan_Keluar_${docNo}.pdf`);
+}
 
 
 // ==========================================================================
