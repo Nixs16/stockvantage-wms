@@ -1240,91 +1240,156 @@ stockoutForm.addEventListener('submit', (e) => {
   .catch(err => showToast(err.message, 'error'));
 });
 
-// Function to generate Surat Jalan / Surat Pengeluaran Barang PDF
+// Function to generate Surat Jalan / Surat Pengeluaran Barang PDF (A4 Professional Layout)
 function generateStockoutPDF(item, qty, recipient, notes, dateStr, docNo) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({
     orientation: 'p',
     unit: 'mm',
-    format: 'a5' // A5 is standard compact size for invoice/surat jalan
+    format: 'a4' // Switch to A4 standard size
   });
 
   const formattedDate = dateStr ? formatDatetimeLocal(dateStr) : formatDateTime(new Date());
 
-  // Colors & Styles
-  doc.setFillColor(33, 150, 243); // Material Blue primary accent
-  doc.rect(0, 0, 148, 12, 'F'); // Top colored header bar
+  // Colors Palette
+  const primaryColor = [30, 41, 59];   // Deep Slate
+  const secondaryColor = [71, 85, 105]; // Slate Gray
+  const accentColor = [14, 165, 233];   // Ocean Blue
+  const lightBg = [248, 250, 252];      // Cool white/gray
 
-  // Header Title
+  // 1. TOP HEADER BRANDING
+  doc.setFillColor(...primaryColor);
+  doc.rect(0, 0, 210, 18, 'F'); // Top colored header bar
+
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.text("STOCKVANTAGE WMS - SURAT JALAN PENGELUARAN BARANG", 8, 8);
+  doc.setFontSize(14);
+  doc.text("STOCKVANTAGE WMS", 15, 12);
 
-  // Document Details Table Grid style
-  doc.setTextColor(50, 50, 50);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
+  doc.setFontSize(9);
+  doc.text("Sistem Manajemen Inventaris Digital", 15, 16);
 
-  doc.text(`No. Dokumen  : ${docNo}`, 10, 22);
-  doc.text(`Tanggal          : ${formattedDate}`, 10, 27);
-  doc.text(`Penerima       : ${recipient}`, 10, 32);
-  doc.text(`Lokasi Asal    : ${item.location}`, 10, 37);
-
-  // Divider Line
-  doc.setDrawColor(200, 200, 200);
-  doc.setLineWidth(0.5);
-  doc.line(10, 42, 138, 42);
-
-  // Table Headers
+  // 2. DOCUMENT TITLE
+  doc.setTextColor(...primaryColor);
   doc.setFont("helvetica", "bold");
-  doc.text("NAMA BARANG", 10, 48);
-  doc.text("SKU", 75, 48);
-  doc.text("KATEGORI", 105, 48);
-  doc.text("QTY", 130, 48);
+  doc.setFontSize(16);
+  doc.text("SURAT JALAN PENGELUARAN BARANG", 15, 30);
 
-  doc.line(10, 51, 138, 51);
+  // Document Number & Timestamp
+  doc.setFontSize(10);
+  doc.setTextColor(...secondaryColor);
+  doc.text(`No. Dokumen: ${docNo}`, 15, 36);
+  doc.text(`Tanggal: ${formattedDate}`, 15, 41);
 
-  // Table Body Rows
+  // 3. TRANSACTION INFO CONTAINER (Metadata boxes)
+  // Box 1: Dari (Asal Pengiriman)
+  doc.setFillColor(...lightBg);
+  doc.rect(15, 48, 85, 28, 'F');
+  doc.setDrawColor(226, 232, 240);
+  doc.rect(15, 48, 85, 28);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...primaryColor);
+  doc.text("GUDANG ASAL:", 18, 53);
   doc.setFont("helvetica", "normal");
-  doc.text(item.name.substring(0, 32), 10, 57);
-  doc.text(item.sku, 75, 57);
-  doc.text(item.category, 105, 57);
-  doc.text(`${qty} pcs`, 130, 57);
+  doc.setFontSize(9);
+  doc.text(item.location.split(' - ')[0] || "Gudang Utama", 18, 59);
+  doc.text(`Detail Rak: ${item.location.split(' - ')[1] || item.location}`, 18, 64);
+  doc.text("Status: Terverifikasi Sistem", 18, 69);
 
-  doc.line(10, 61, 138, 61);
-
-  // Notes/Keperluan
+  // Box 2: Untuk (Penerima)
+  doc.rect(110, 48, 85, 28, 'F');
+  doc.rect(110, 48, 85, 28);
   doc.setFont("helvetica", "bold");
-  doc.text("Catatan Keperluan:", 10, 70);
+  doc.setFontSize(10);
+  doc.text("DITERIMA OLEH:", 113, 53);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(recipient, 113, 59);
+  doc.text("Tujuan: Distribusi Operasional", 113, 64);
+  doc.text("Status: Menunggu TTD Fisik", 113, 69);
+
+  // 4. ITEMS TABLE (Clean Modern Layout)
+  const tableY = 86;
+  doc.setFillColor(...primaryColor);
+  doc.rect(15, tableY, 180, 8, 'F'); // Table header background
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text("DESKRIPSI BARANG", 18, tableY + 5.5);
+  doc.text("SKU", 95, tableY + 5.5);
+  doc.text("KATEGORI", 135, tableY + 5.5);
+  doc.text("KUANTITAS", 175, tableY + 5.5);
+
+  // Table content row
+  doc.setTextColor(...primaryColor);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9.5);
+  
+  const contentY = tableY + 16;
+  doc.text(item.name.substring(0, 40), 18, contentY);
+  doc.text(item.sku, 95, contentY);
+  doc.text(item.category, 135, contentY);
+  doc.setFont("helvetica", "bold");
+  doc.text(`${qty} pcs`, 175, contentY);
+
+  // Table grid borders
+  doc.setDrawColor(203, 213, 225);
+  doc.rect(15, tableY, 180, 24); // Bounding table border
+  doc.line(15, tableY + 8, 195, tableY + 8); // Header divider line
+
+  // 5. NOTES SECTION
+  const notesY = tableY + 32;
+  doc.setFillColor(...lightBg);
+  doc.rect(15, notesY, 180, 22, 'F');
+  doc.rect(15, notesY, 180, 22);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(...primaryColor);
+  doc.text("Catatan Keperluan:", 18, notesY + 5);
   doc.setFont("helvetica", "italic");
-  doc.text(notes || 'Tidak ada catatan tambahan.', 10, 75);
+  doc.setFontSize(8.5);
+  doc.setTextColor(...secondaryColor);
+  
+  // Handle multiline notes nicely
+  const splitNotes = doc.splitTextToSize(notes || 'Tidak ada catatan tambahan.', 172);
+  doc.text(splitNotes, 18, notesY + 10);
 
-  // Signatures Section (Tanda Tangan)
-  doc.setLineWidth(0.3);
+  // 6. SIGNATURES (Tanda Tangan)
+  const signBlockY = notesY + 36;
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(9.5);
+  doc.setTextColor(...primaryColor);
   
   // Left: Izin Keluar (Supervisor / Manager)
-  const leftSignX = 25;
-  const signY = 105;
-  doc.text("Pemberi Izin,", leftSignX - 5, signY);
-  doc.line(leftSignX - 15, signY + 18, leftSignX + 20, signY + 18); // Ttd line
+  const leftX = 40;
+  doc.text("Pemberi Izin (WMS),", leftX - 15, signBlockY);
+  doc.setDrawColor(148, 163, 184);
+  doc.setLineDash([1.5, 1.5]); // Dashed line for clean signature area
+  doc.line(leftX - 25, signBlockY + 25, leftX + 25, signBlockY + 25);
+  doc.setLineDash([]); // Reset dash style
   doc.setFont("helvetica", "normal");
-  doc.text("( Supervisor / Manager )", leftSignX - 14, signY + 22);
+  doc.setFontSize(9);
+  doc.text("( Supervisor / Manager )", leftX - 17, signBlockY + 29);
 
   // Right: Penerima Barang
+  const rightX = 155;
   doc.setFont("helvetica", "bold");
-  const rightSignX = 110;
-  doc.text("Penerima Barang,", rightSignX - 8, signY);
-  doc.line(rightSignX - 15, signY + 18, rightSignX + 20, signY + 18); // Ttd line
+  doc.text("Penerima Barang,", rightX - 15, signBlockY);
+  doc.setLineDash([1.5, 1.5]);
+  doc.line(rightX - 25, signBlockY + 25, rightX + 25, signBlockY + 25);
+  doc.setLineDash([]);
   doc.setFont("helvetica", "normal");
-  doc.text(`( ${recipient.substring(0, 16)} )`, rightSignX - 10, signY + 22);
+  doc.text(`( ${recipient.substring(0, 22)} )`, rightX - 18, signBlockY + 29);
 
-  // Border frame decoration
-  doc.rect(5, 5, 138, 195); 
+  // Footer branding note
+  doc.setFontSize(7.5);
+  doc.setTextColor(150, 150, 150);
+  doc.text("Dokumen ini sah dibuat secara otomatis oleh sistem StockVantage WMS.", 60, 280);
 
   // Save/Download PDF
-  doc.save(`Surat_Jalan_Keluar_${docNo}.pdf`);
+  doc.save(`Surat_Jalan_${docNo}.pdf`);
 }
 
 
