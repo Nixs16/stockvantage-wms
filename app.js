@@ -135,14 +135,21 @@ const toRegisterBtn = document.getElementById('to-register-btn');
 const toLoginBtn = document.getElementById('to-login-btn');
 const sidebarLogout = document.getElementById('sidebar-logout');
 
-// Stock Out Elements
-
+// Stock Out Elements (Multi-Item)
 const stockoutForm = document.getElementById('stockout-form');
-const stockoutItemSelect = document.getElementById('stockout-item-select');
-const stockoutQty = document.getElementById('stockout-qty');
+const stockoutItemsContainer = document.getElementById('stockout-items-container');
+const addStockoutRowBtn = document.getElementById('add-stockout-row-btn');
 const stockoutRecipient = document.getElementById('stockout-recipient');
 const stockoutNotes = document.getElementById('stockout-notes');
 const stockoutDate = document.getElementById('stockout-date');
+
+// History Elements
+const historyTableBody = document.getElementById('history-table-body');
+const historySearch = document.getElementById('history-search');
+const historyFilterType = document.getElementById('history-filter-type');
+const historyStartDate = document.getElementById('history-start-date');
+const historyEndDate = document.getElementById('history-end-date');
+const historyClearFiltersBtn = document.getElementById('history-clear-filters-btn');
 
 // Warehouse Elements
 const warehouseRacksContainer = document.getElementById('warehouse-racks-container');
@@ -304,7 +311,8 @@ function updateUI() {
   renderChart();
   renderTransactions();
   renderInventoryTable();
-  populateItemDropdowns();
+  renderHistoryTable(); // Update history tab table
+  
   // Refresh whichever warehouse view is currently active
   if (activeWarehouseId) {
     renderWarehouseRacks(activeWarehouseId);
@@ -314,21 +322,16 @@ function updateUI() {
   renderUsersTable();
 }
 
-// Populate item dropdown selects for transaction forms
-function populateItemDropdowns() {
-  if (!stockoutItemSelect) return;
-  
-  const currentOutSel = stockoutItemSelect.value;
-
-  const htmlOptions = `
-    <option value="">-- Pilih Barang dari Inventaris --</option>
-    ${items.map(item => `<option value="${item.id}">${item.name} (${item.sku}) - Stok: ${item.quantity}</option>`).join('')}
+// Populate item dropdown options for stockout select elements
+function getStockoutItemOptionsHtml(selectedValue = '') {
+  return `
+    <option value="">-- Pilih Barang --</option>
+    ${items.map(item => `
+      <option value="${item.id}" ${item.id === selectedValue ? 'selected' : ''}>
+        ${item.name} (${item.sku}) - Stok: ${item.quantity}
+      </option>
+    `).join('')}
   `;
-
-  stockoutItemSelect.innerHTML = htmlOptions;
-
-  // Restore selection if valid
-  stockoutItemSelect.value = items.some(i => i.id === currentOutSel) ? currentOutSel : "";
 }
 
 // Populate the Gudang dropdown in the Add/Edit item modal
@@ -1138,6 +1141,7 @@ tabButtons.forEach(btn => {
     } else if (activeTab === 'stockout') {
       pageTitle.textContent = 'Keluar Barang';
       pageSubtitle.textContent = 'Formulir pencatatan barang keluar (Stock Out) dari gudang.';
+      initializeStockoutFormRows(); // Reset dynamic rows
       if (stockoutDate) stockoutDate.value = getCurrentDatetimeLocal();
     } else if (activeTab === 'warehouse') {
       pageTitle.textContent = 'Manajemen Gudang';
@@ -1150,6 +1154,10 @@ tabButtons.forEach(btn => {
     } else if (activeTab === 'users') {
       pageTitle.textContent = 'Kelola Pengguna';
       pageSubtitle.textContent = 'Manajemen akun Supervisor dan Staff Admin (Khusus Manager).';
+    } else if (activeTab === 'history') {
+      pageTitle.textContent = 'History Transaksi';
+      pageSubtitle.textContent = 'Laporan lengkap riwayat keluar-masuk barang pergudangan.';
+      renderHistoryTable();
     }
   });
 });
@@ -1173,6 +1181,21 @@ globalSearch.addEventListener('input', () => {
 filterCategory.addEventListener('change', renderInventoryTable);
 filterStatus.addEventListener('change', renderInventoryTable);
 
+// Bind History Filter Listeners
+if (historySearch) historySearch.addEventListener('input', renderHistoryTable);
+if (historyFilterType) historyFilterType.addEventListener('change', renderHistoryTable);
+if (historyStartDate) historyStartDate.addEventListener('change', renderHistoryTable);
+if (historyEndDate) historyEndDate.addEventListener('change', renderHistoryTable);
+if (historyClearFiltersBtn) {
+  historyClearFiltersBtn.addEventListener('click', () => {
+    if (historySearch) historySearch.value = '';
+    if (historyFilterType) historyFilterType.value = 'all';
+    if (historyStartDate) historyStartDate.value = '';
+    if (historyEndDate) historyEndDate.value = '';
+    renderHistoryTable();
+  });
+}
+
 // Modal listeners for Items
 quickAddBtn.addEventListener('click', () => openModal());
 closeModalBtn.addEventListener('click', closeModal);
@@ -1195,58 +1218,138 @@ window.addEventListener('click', (e) => {
 // 7. Stock In & Stock Out Form Listeners
 // ==========================================================================
 
-// Submit Transaksi Keluar Barang
+// Submit Transaksi Keluar Barang (Multi-Item)
+if (addStockoutRowBtn) {
+  addStockoutRowBtn.addEventListener('click', () => addStockoutItemRow());
+}
+
+function addStockoutItemRow(selectedItemId = '', qty = 1) {
+  const rowId = `stockout-row-${Date.now()}-${Math.floor(Math.random()*1000)}`;
+  const div = document.createElement('div');
+  div.className = 'form-row stockout-item-row';
+  div.id = rowId;
+  div.style.alignItems = 'flex-end';
+  div.style.gap = '10px';
+  div.style.marginBottom = '12px';
+
+  div.innerHTML = `
+    <div class="form-group" style="flex: 2; margin-bottom: 0;">
+      <label>Pilih Barang <span class="required">*</span></label>
+      <select class="stockout-row-item-select" required style="width: 100%;">
+        ${getStockoutItemOptionsHtml(selectedItemId)}
+      </select>
+    </div>
+    <div class="form-group" style="flex: 1; margin-bottom: 0;">
+      <label>Jumlah <span class="required">*</span></label>
+      <input type="number" class="stockout-row-qty-input" min="1" required value="${qty}" style="width: 100%;">
+    </div>
+    <button type="button" class="btn btn-secondary btn-delete-row" style="padding: 10px; margin-bottom: 0; background-color: var(--danger-light); color: var(--danger); border: none;" title="Hapus Baris">
+      &times;
+    </button>
+  `;
+
+  // Attach delete listener
+  div.querySelector('.btn-delete-row').addEventListener('click', () => {
+    const rows = stockoutItemsContainer.querySelectorAll('.stockout-item-row');
+    if (rows.length <= 1) {
+      showToast('Minimal harus ada 1 barang dalam daftar pengeluaran.', 'warning');
+      return;
+    }
+    div.remove();
+  });
+
+  stockoutItemsContainer.appendChild(div);
+}
+
+// Ensure at least one row on tab switch or page load
+function initializeStockoutFormRows() {
+  if (stockoutItemsContainer) {
+    stockoutItemsContainer.innerHTML = '';
+    addStockoutItemRow();
+  }
+}
+
 stockoutForm.addEventListener('submit', (e) => {
   e.preventDefault();
-  const itemId = stockoutItemSelect.value;
-  const qty = parseInt(stockoutQty.value);
   const recipient = stockoutRecipient.value.trim();
   const notes = stockoutNotes.value.trim();
   const customDate = stockoutDate ? stockoutDate.value : '';
 
-  const item = items.find(i => i.id === itemId);
-  if (!item) return;
+  const rows = stockoutItemsContainer.querySelectorAll('.stockout-item-row');
+  const itemsToSubmit = [];
+  const localCheckedIds = new Set();
 
-  // Check if quantity is sufficient
-  if (qty > item.quantity) {
-    showToast(`Transaksi Gagal: Stok tidak mencukupi. Stok saat ini ${item.quantity} unit.`, 'error');
+  for (const row of rows) {
+    const selectEl = row.querySelector('.stockout-row-item-select');
+    const qtyInput = row.querySelector('.stockout-row-qty-input');
+    const itemId = selectEl.value;
+    const qty = parseInt(qtyInput.value) || 0;
+
+    if (!itemId) {
+      showToast('Pilih barang terlebih dahulu pada setiap baris.', 'warning');
+      selectEl.focus();
+      return;
+    }
+
+    if (localCheckedIds.has(itemId)) {
+      showToast('Gagal: Ada barang yang dipilih ganda di daftar pengeluaran Anda.', 'warning');
+      selectEl.focus();
+      return;
+    }
+    localCheckedIds.add(itemId);
+
+    const item = items.find(i => i.id === itemId);
+    if (!item) return;
+
+    if (qty > item.quantity) {
+      showToast(`Stok "${item.name}" tidak mencukupi. Tersedia: ${item.quantity} unit.`, 'error');
+      qtyInput.focus();
+      return;
+    }
+
+    itemsToSubmit.push({ itemId, quantity: qty });
+  }
+
+  if (itemsToSubmit.length === 0) {
+    showToast('Tambahkan minimal 1 barang.', 'warning');
     return;
   }
 
   fetch('/api/transactions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ itemId, type: 'out', quantity: qty, customDate })
+    body: JSON.stringify({ type: 'out', recipient, notes, customDate, items: itemsToSubmit })
   })
   .then(res => {
-    if (!res.ok) throw new Error('Gagal memproses transaksi');
+    if (!res.ok) return res.json().then(d => { throw new Error(d.error || 'Gagal memproses transaksi'); });
     return res.json();
   })
   .then((data) => {
-    showToast(`Stok ${item.name} berhasil dikeluarkan sebesar -${qty} unit.`, 'success');
+    showToast(`Transaksi pengeluaran barang berhasil diproses.`, 'success');
     
-    // Generate and download PDF Invoice/Surat Jalan
+    // Generate and download PDF Invoice/Surat Jalan untuk banyak barang
     try {
-      generateStockoutPDF(item, qty, recipient, notes, customDate, data.transactionId);
+      generateStockoutPDF(itemsToSubmit, recipient, notes, customDate, data.docNo);
     } catch (pdfErr) {
       console.error('PDF Generation error:', pdfErr);
       showToast('Gagal membuat dokumen PDF, transaksi tetap sukses.', 'warning');
     }
 
     stockoutForm.reset();
+    initializeStockoutFormRows();
     if (stockoutDate) stockoutDate.value = getCurrentDatetimeLocal();
     refreshData();
   })
   .catch(err => showToast(err.message, 'error'));
 });
 
-// Function to generate Surat Jalan / Surat Pengeluaran Barang PDF (A4 Professional Layout)
-function generateStockoutPDF(item, qty, recipient, notes, dateStr, docNo) {
+// Function to generate Surat Jalan / Surat Pengeluaran Barang PDF (A4 Professional Layout - Multi Item)
+function generateStockoutPDF(itemsSubmitted, recipient, notes, dateStr, docNo) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({
     orientation: 'p',
     unit: 'mm',
-    format: 'a4' // Switch to A4 standard size
+    format: 'a4'
   });
 
   const formattedDate = dateStr ? formatDatetimeLocal(dateStr) : formatDateTime(new Date());
@@ -1254,12 +1357,11 @@ function generateStockoutPDF(item, qty, recipient, notes, dateStr, docNo) {
   // Colors Palette
   const primaryColor = [30, 41, 59];   // Deep Slate
   const secondaryColor = [71, 85, 105]; // Slate Gray
-  const accentColor = [14, 165, 233];   // Ocean Blue
   const lightBg = [248, 250, 252];      // Cool white/gray
 
   // 1. TOP HEADER BRANDING
   doc.setFillColor(...primaryColor);
-  doc.rect(0, 0, 210, 18, 'F'); // Top colored header bar
+  doc.rect(0, 0, 210, 18, 'F');
 
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
@@ -1282,35 +1384,33 @@ function generateStockoutPDF(item, qty, recipient, notes, dateStr, docNo) {
   doc.text(`No. Dokumen: ${docNo}`, 15, 36);
   doc.text(`Tanggal: ${formattedDate}`, 15, 41);
 
-  // 3. TRANSACTION INFO CONTAINER (Metadata boxes)
-  // Box 1: Dari (Asal Pengiriman)
+  // 3. TRANSACTION INFO CONTAINER
+  // Box 1: Gudang Asal
   doc.setFillColor(...lightBg);
-  doc.rect(15, 48, 85, 28, 'F');
+  doc.rect(15, 48, 85, 25, 'F');
   doc.setDrawColor(226, 232, 240);
-  doc.rect(15, 48, 85, 28);
+  doc.rect(15, 48, 85, 25);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...primaryColor);
   doc.text("GUDANG ASAL:", 18, 53);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.text(item.location.split(' - ')[0] || "Gudang Utama", 18, 59);
-  doc.text(`Detail Rak: ${item.location.split(' - ')[1] || item.location}`, 18, 64);
-  doc.text("Status: Terverifikasi Sistem", 18, 69);
+  doc.text("Multi-Gudang Terverifikasi", 18, 59);
+  doc.text("Status: Terverifikasi Sistem", 18, 64);
 
-  // Box 2: Untuk (Penerima)
-  doc.rect(110, 48, 85, 28, 'F');
-  doc.rect(110, 48, 85, 28);
+  // Box 2: Penerima
+  doc.rect(110, 48, 85, 25, 'F');
+  doc.rect(110, 48, 85, 25);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.text("DITERIMA OLEH:", 113, 53);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.text(recipient, 113, 59);
-  doc.text("Tujuan: Distribusi Operasional", 113, 64);
-  doc.text("Status: Menunggu TTD Fisik", 113, 69);
+  doc.text("Status: Menunggu TTD Fisik", 113, 64);
 
-  // 4. ITEMS TABLE (Clean Modern Layout)
-  const tableY = 86;
+  // 4. ITEMS TABLE (Clean Modern Layout for Multi-Items)
+  let tableY = 82;
   doc.setFillColor(...primaryColor);
   doc.rect(15, tableY, 180, 8, 'F'); // Table header background
 
@@ -1322,28 +1422,37 @@ function generateStockoutPDF(item, qty, recipient, notes, dateStr, docNo) {
   doc.text("KATEGORI", 135, tableY + 5.5);
   doc.text("KUANTITAS", 175, tableY + 5.5);
 
-  // Table content row
+  // Render rows
   doc.setTextColor(...primaryColor);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9.5);
+  doc.setFontSize(9);
   
-  const contentY = tableY + 16;
-  doc.text(item.name.substring(0, 40), 18, contentY);
-  doc.text(item.sku, 95, contentY);
-  doc.text(item.category, 135, contentY);
-  doc.setFont("helvetica", "bold");
-  doc.text(`${qty} pcs`, 175, contentY);
-
-  // Table grid borders
+  let currentY = tableY + 8;
   doc.setDrawColor(203, 213, 225);
-  doc.rect(15, tableY, 180, 24); // Bounding table border
-  doc.line(15, tableY + 8, 195, tableY + 8); // Header divider line
+
+  itemsSubmitted.forEach((submitItem) => {
+    const itemInfo = items.find(i => i.id === submitItem.itemId) || { name: 'Unknown', sku: '-', category: '-' };
+    
+    currentY += 8;
+    doc.text(itemInfo.name.substring(0, 36), 18, currentY - 2.5);
+    doc.text(itemInfo.sku, 95, currentY - 2.5);
+    doc.text(itemInfo.category, 135, currentY - 2.5);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${submitItem.quantity} pcs`, 175, currentY - 2.5);
+    doc.setFont("helvetica", "normal");
+
+    // Row divider line
+    doc.line(15, currentY, 195, currentY);
+  });
+
+  // Table outer bounding box
+  doc.rect(15, tableY, 180, currentY - tableY);
 
   // 5. NOTES SECTION
-  const notesY = tableY + 32;
+  const notesY = currentY + 10;
   doc.setFillColor(...lightBg);
-  doc.rect(15, notesY, 180, 22, 'F');
-  doc.rect(15, notesY, 180, 22);
+  doc.rect(15, notesY, 180, 20, 'F');
+  doc.rect(15, notesY, 180, 20);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
   doc.setTextColor(...primaryColor);
@@ -1352,44 +1461,118 @@ function generateStockoutPDF(item, qty, recipient, notes, dateStr, docNo) {
   doc.setFontSize(8.5);
   doc.setTextColor(...secondaryColor);
   
-  // Handle multiline notes nicely
   const splitNotes = doc.splitTextToSize(notes || 'Tidak ada catatan tambahan.', 172);
   doc.text(splitNotes, 18, notesY + 10);
 
   // 6. SIGNATURES (Tanda Tangan)
-  const signBlockY = notesY + 36;
+  const signBlockY = notesY + 32;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9.5);
   doc.setTextColor(...primaryColor);
   
-  // Left: Izin Keluar (Supervisor / Manager)
+  // Left: Izin Keluar
   const leftX = 40;
   doc.text("Pemberi Izin (WMS),", leftX - 15, signBlockY);
   doc.setDrawColor(148, 163, 184);
-  doc.setLineDash([1.5, 1.5]); // Dashed line for clean signature area
-  doc.line(leftX - 25, signBlockY + 25, leftX + 25, signBlockY + 25);
-  doc.setLineDash([]); // Reset dash style
+  doc.setLineDash([1.5, 1.5]);
+  doc.line(leftX - 25, signBlockY + 22, leftX + 25, signBlockY + 22);
+  doc.setLineDash([]);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.text("( Supervisor / Manager )", leftX - 17, signBlockY + 29);
+  doc.text("( Supervisor / Manager )", leftX - 17, signBlockY + 26);
 
   // Right: Penerima Barang
   const rightX = 155;
   doc.setFont("helvetica", "bold");
   doc.text("Penerima Barang,", rightX - 15, signBlockY);
   doc.setLineDash([1.5, 1.5]);
-  doc.line(rightX - 25, signBlockY + 25, rightX + 25, signBlockY + 25);
+  doc.line(rightX - 25, signBlockY + 22, rightX + 25, signBlockY + 22);
   doc.setLineDash([]);
   doc.setFont("helvetica", "normal");
-  doc.text(`( ${recipient.substring(0, 22)} )`, rightX - 18, signBlockY + 29);
+  doc.text(`( ${recipient.substring(0, 22)} )`, rightX - 18, signBlockY + 26);
 
   // Footer branding note
   doc.setFontSize(7.5);
   doc.setTextColor(150, 150, 150);
   doc.text("Dokumen ini sah dibuat secara otomatis oleh sistem StockVantage WMS.", 60, 280);
 
-  // Save/Download PDF
   doc.save(`Surat_Jalan_${docNo}.pdf`);
+}
+
+// Function to Render History/Riwayat Transaksi Table
+function renderHistoryTable() {
+  if (!historyTableBody) return;
+  historyTableBody.innerHTML = '';
+
+  const searchVal = historySearch ? historySearch.value.trim().toLowerCase() : '';
+  const typeVal = historyFilterType ? historyFilterType.value : 'all';
+  const startVal = historyStartDate ? historyStartDate.value : '';
+  const endVal = historyEndDate ? historyEndDate.value : '';
+
+  const filteredTx = transactions.filter(tx => {
+    // 1. Search filter (Item Name or Document Number)
+    const txDocNo = tx.docNo || tx.id;
+    const matchesSearch = tx.itemName.toLowerCase().includes(searchVal) || txDocNo.toLowerCase().includes(searchVal);
+
+    // 2. Type filter (in or out)
+    const matchesType = typeVal === 'all' || tx.type === typeVal;
+
+    // 3. Date Range filter
+    let matchesDate = true;
+    if (tx.timestamp) {
+      // Parse timestamp string or DB date if formatted. 
+      // Note: Aiven transactions have date context. If we parse local date:
+      const txDateObj = new Date(tx.timestamp); 
+      // Safe boundary comparisons
+      if (startVal) {
+        const startLimit = new Date(startVal);
+        startLimit.setHours(0,0,0,0);
+        if (txDateObj < startLimit) matchesDate = false;
+      }
+      if (endVal) {
+        const endLimit = new Date(endVal);
+        endLimit.setHours(23,59,59,999);
+        if (txDateObj > endLimit) matchesDate = false;
+      }
+    }
+
+    return matchesSearch && matchesType && matchesDate;
+  });
+
+  if (filteredTx.length === 0) {
+    historyTableBody.innerHTML = `
+      <tr>
+        <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 40px;">
+          Riwayat transaksi tidak ditemukan.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  filteredTx.forEach(tx => {
+    const tr = document.createElement('tr');
+    const typeLabel = tx.type === 'in' ? 'MASUK (IN)' : 'KELUAR (OUT)';
+    const typeBadge = tx.type === 'in' ? 'instock' : 'outofstock';
+    const documentDisplay = tx.docNo || tx.id;
+
+    tr.innerHTML = `
+      <td style="font-weight: 600; color: var(--text-main);">${documentDisplay}</td>
+      <td>
+        <div style="font-weight: 500;">${tx.itemName}</div>
+      </td>
+      <td>
+        <span class="status-badge ${typeBadge}">${typeLabel}</span>
+      </td>
+      <td style="font-weight: 600;">${tx.quantity} pcs</td>
+      <td>${tx.recipient || '-'}</td>
+      <td style="font-size: 0.8rem; color: var(--text-secondary); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${tx.notes || ''}">
+        ${tx.notes || '-'}
+      </td>
+      <td>${tx.timestamp}</td>
+    `;
+    historyTableBody.appendChild(tr);
+  });
 }
 
 
@@ -1873,5 +2056,6 @@ async function checkSession() {
 document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
   checkSession();
+  initializeStockoutFormRows();
   if (stockoutDate) stockoutDate.value = getCurrentDatetimeLocal();
 });

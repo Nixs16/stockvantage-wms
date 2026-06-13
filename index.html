@@ -138,6 +138,13 @@
           </svg>
           <span>Gudang</span>
         </a>
+        <a href="#" class="menu-item" data-tab="history" id="menu-history-link">
+          <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <span>History Transaksi</span>
+        </a>
         <a href="#" class="menu-item" data-tab="users" id="menu-users-link">
           <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -403,38 +410,37 @@
           <form id="stockout-form" class="transaction-form">
             <div class="form-row">
               <div class="form-group">
-                <label for="stockout-item-select">Pilih Barang <span class="required">*</span></label>
-                <select id="stockout-item-select" required>
-                  <option value="">-- Pilih Barang dari Inventaris --</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="stockout-qty">Kuantitas Keluar <span class="required">*</span></label>
-                <input type="number" id="stockout-qty" placeholder="Contoh: 5" min="1" required>
-              </div>
-              <div class="form-group">
                 <label for="stockout-recipient">Tujuan / Penerima <span class="required">*</span></label>
                 <input type="text" id="stockout-recipient" placeholder="Contoh: Divisi IT / PT. Maju Bersama" required>
               </div>
+              <div class="form-group">
+                <label for="stockout-date">Tanggal &amp; Waktu Keluar</label>
+                <input type="datetime-local" id="stockout-date" class="auto-date-input" required>
+              </div>
             </div>
+
+            <!-- DYNAMIC ITEMS LIST BLOCK -->
+            <div style="margin: 15px 0; border-top: 1px dashed var(--border-color); padding-top: 15px;">
+              <h4 style="margin-bottom: 10px; color: var(--text-main); font-weight: 600;">Daftar Barang Keluar:</h4>
+              <div id="stockout-items-container">
+                <!-- Javascript will populate rows here -->
+              </div>
+              <button type="button" id="add-stockout-row-btn" class="btn btn-secondary btn-sm" style="margin-top: 8px; font-size: 0.8rem; background-color: var(--bg-sidebar-hover); color: var(--text-main); border: 1px solid var(--border-color);">
+                ➕ Tambah Baris Barang
+              </button>
+            </div>
+
             <div class="form-row">
               <div class="form-group">
                 <label for="stockout-notes">Catatan Transaksi / Nomor DO</label>
                 <textarea id="stockout-notes" rows="3" placeholder="Contoh: DO-10492. Keperluan operasional kantor cabang."></textarea>
               </div>
             </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="stockout-date">Tanggal &amp; Waktu Keluar</label>
-                <input type="datetime-local" id="stockout-date" class="auto-date-input" required>
-              </div>
-            </div>
+
             <div class="form-actions-row">
               <button type="submit" class="btn btn-primary" style="background-color: var(--danger); border-color: var(--danger); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                <span>Proses Keluar Barang</span>
+                <span>Proses Keluar Barang &amp; Cetak PDF</span>
               </button>
             </div>
           </form>
@@ -559,6 +565,55 @@
             </thead>
             <tbody id="users-table-body">
               <!-- Dynamically populated users -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 7: History Transaksi -->
+      <section id="history-tab" class="tab-content">
+        <div class="table-controls" style="flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
+          <div class="header-title-area" style="margin-bottom: 0;">
+            <h2>History Transaksi Gudang</h2>
+            <p class="subtitle">Riwayat lengkap barang masuk dan keluar gudang secara real-time.</p>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center; width: 100%; justify-content: flex-start; flex-wrap: wrap; margin-top: 10px;">
+            <input type="text" id="history-search" placeholder="Cari nama barang / SKU..." style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: var(--border-radius-md); font-size: 0.85rem; min-width: 200px; background: var(--bg-card); color: var(--text-main);">
+            
+            <select id="history-filter-type" style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: var(--border-radius-md); font-size: 0.85rem; background: var(--bg-card); color: var(--text-main);">
+              <option value="all">Semua Tipe</option>
+              <option value="in">Barang Masuk (IN)</option>
+              <option value="out">Barang Keluar (OUT)</option>
+            </select>
+
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <span style="font-size: 0.8rem; color: var(--text-muted);">Mulai:</span>
+              <input type="date" id="history-start-date" style="padding: 6px 10px; border: 1px solid var(--border-color); border-radius: var(--border-radius-md); font-size: 0.85rem; background: var(--bg-card); color: var(--text-main);">
+            </div>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <span style="font-size: 0.8rem; color: var(--text-muted);">Hingga:</span>
+              <input type="date" id="history-end-date" style="padding: 6px 10px; border: 1px solid var(--border-color); border-radius: var(--border-radius-md); font-size: 0.85rem; background: var(--bg-card); color: var(--text-main);">
+            </div>
+            
+            <button id="history-clear-filters-btn" class="btn btn-secondary btn-sm" style="font-size: 0.8rem; padding: 8px 12px;">Reset Filter</button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="inventory-table">
+            <thead>
+              <tr>
+                <th>No. Dokumen</th>
+                <th>Nama Barang</th>
+                <th>Tipe</th>
+                <th>Kuantitas</th>
+                <th>Tujuan / Penerima</th>
+                <th>Catatan</th>
+                <th>Tanggal Masuk/Keluar</th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body">
+              <!-- Dynamically populated transaction logs -->
             </tbody>
           </table>
         </div>

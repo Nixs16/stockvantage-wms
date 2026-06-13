@@ -56,6 +56,9 @@ CREATE TABLE IF NOT EXISTS `transactions` (
   `type` VARCHAR(10) NOT NULL, -- 'in' or 'out'
   `quantity` INT NOT NULL,
   `timestamp` VARCHAR(50) NOT NULL, -- Format display: '04 Jun, 14:25'
+  `recipient` VARCHAR(100) DEFAULT NULL,
+  `notes` TEXT DEFAULT NULL,
+  `doc_no` VARCHAR(50) DEFAULT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

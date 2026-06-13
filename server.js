@@ -31,6 +31,29 @@ async function initDb() {
     // Test the connection
     const conn = await pool.getConnection();
     console.log('Database terhubung sukses ke MySQL:', dbConfig.host);
+    
+    // Auto-migrate: Add new columns if they don't exist
+    try {
+      await conn.query(`
+        ALTER TABLE transactions 
+        ADD COLUMN IF NOT EXISTS recipient VARCHAR(100) DEFAULT NULL,
+        ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT NULL,
+        ADD COLUMN IF NOT EXISTS doc_no VARCHAR(50) DEFAULT NULL;
+      `);
+      console.log('Migrasi database transaksi sukses.');
+    } catch (migError) {
+      // Fallback for older MySQL engines that don't support ADD COLUMN IF NOT EXISTS syntax
+      try {
+        await conn.query("ALTER TABLE transactions ADD COLUMN recipient VARCHAR(100) DEFAULT NULL;");
+      } catch (e) {}
+      try {
+        await conn.query("ALTER TABLE transactions ADD COLUMN notes TEXT DEFAULT NULL;");
+      } catch (e) {}
+      try {
+        await conn.query("ALTER TABLE transactions ADD COLUMN doc_no VARCHAR(50) DEFAULT NULL;");
+      } catch (e) {}
+    }
+    
     conn.release();
   } catch (error) {
     console.error('\n================================================================');
@@ -331,14 +354,17 @@ app.delete('/api/warehouses/:id', async (req, res) => {
 // --- 4. TRANSACTIONS API ---
 app.get('/api/transactions', async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM transactions ORDER BY created_at DESC LIMIT 50');
+    const [rows] = await pool.query('SELECT * FROM transactions ORDER BY created_at DESC LIMIT 100');
     res.json(rows.map(row => ({
       id: row.id,
       itemId: row.item_id,
       itemName: row.item_name,
       type: row.type,
       quantity: row.quantity,
-      timestamp: row.timestamp
+      timestamp: row.timestamp,
+      recipient: row.recipient,
+      notes: row.notes,
+      docNo: row.doc_no
     })));
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -346,7 +372,58 @@ app.get('/api/transactions', async (req, res) => {
 });
 
 app.post('/api/transactions', async (req, res) => {
-  const { itemId, type, quantity, customDate } = req.body;
+  const { itemId, type, quantity, customDate, recipient, notes, items } = req.body;
+
+  // Handle Multi-Item Transaction (items is an array)
+  if (items && Array.isArray(items) && items.length > 0) {
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const docNo = `SJ-${Date.now().toString().slice(-6)}`;
+      const timestamp = customDate ? formatDatetimeLocal(customDate) : formatDateTime(new Date());
+      const processedResults = [];
+
+      for (const tItem of items) {
+        const { itemId: tItemId, quantity: tQty } = tItem;
+
+        // Get Item current stock and name
+        const [itemRows] = await connection.query('SELECT name, quantity FROM items WHERE id = ?', [tItemId]);
+        if (itemRows.length === 0) {
+          throw new Error(`Barang dengan ID ${tItemId} tidak ditemukan.`);
+        }
+        const item = itemRows[0];
+
+        if (item.quantity < tQty) {
+          throw new Error(`Stok barang "${item.name}" tidak mencukupi. Tersedia: ${item.quantity} unit.`);
+        }
+
+        // Update quantity
+        const newQty = item.quantity - tQty;
+        await connection.query('UPDATE items SET quantity = ? WHERE id = ?', [newQty, tItemId]);
+
+        // Insert Transaction log
+        const trxId = `TRX-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        await connection.query(
+          'INSERT INTO transactions (id, item_id, item_name, type, quantity, timestamp, recipient, notes, doc_no) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [trxId, tItemId, item.name, 'out', tQty, timestamp, recipient || null, notes || null, docNo]
+        );
+
+        processedResults.push({ itemId: tItemId, name: item.name, quantity: tQty });
+      }
+
+      await connection.commit();
+      res.json({ message: 'Transaksi multi-item berhasil diproses', docNo, items: processedResults });
+    } catch (err) {
+      await connection.rollback();
+      res.status(500).json({ error: err.message });
+    } finally {
+      connection.release();
+    }
+    return;
+  }
+
+  // Fallback / Single Transaction (for stock in adjust +, delete etc.)
   if (!itemId || !type || quantity === undefined) {
     return res.status(400).json({ error: 'Parameter transaksi tidak lengkap' });
   }
@@ -382,8 +459,8 @@ app.post('/api/transactions', async (req, res) => {
     const trxId = `TRX-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const timestamp = customDate ? formatDatetimeLocal(customDate) : formatDateTime(new Date());
     await connection.query(
-      'INSERT INTO transactions (id, item_id, item_name, type, quantity, timestamp) VALUES (?, ?, ?, ?, ?, ?)',
-      [trxId, itemId, item.name, type, quantity, timestamp]
+      'INSERT INTO transactions (id, item_id, item_name, type, quantity, timestamp, recipient, notes, doc_no) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [trxId, itemId, item.name, type, quantity, timestamp, recipient || null, notes || null, trxId]
     );
 
     await connection.commit();
