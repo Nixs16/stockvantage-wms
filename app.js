@@ -324,9 +324,17 @@ function updateUI() {
 
 // Populate item dropdown options for stockout select elements
 function getStockoutItemOptionsHtml(selectedValue = '') {
+  let allowedItems = items;
+  if (currentUser && currentUser.role === 'Staff Admin') {
+    allowedItems = items.filter(item => {
+      const { whId } = parseLocationString(item.location);
+      return whId === 'wh-1';
+    });
+  }
+
   return `
     <option value="">-- Pilih Barang --</option>
-    ${items.map(item => `
+    ${allowedItems.map(item => `
       <option value="${item.id}" ${item.id === selectedValue ? 'selected' : ''}>
         ${item.name} (${item.sku}) - Stok: ${item.quantity}
       </option>
@@ -337,16 +345,28 @@ function getStockoutItemOptionsHtml(selectedValue = '') {
 // Populate the Gudang dropdown in the Add/Edit item modal
 function populateWarehouseDropdown(selectedWhId = '') {
   if (!inputLocationWarehouse) return;
+
+  let allowedWarehouses = WAREHOUSES;
+  if (currentUser && currentUser.role === 'Staff Admin') {
+    allowedWarehouses = WAREHOUSES.filter(w => w.id === 'wh-1');
+  }
+
   inputLocationWarehouse.innerHTML = '<option value="">-- Pilih Gudang --</option>';
-  WAREHOUSES.forEach(wh => {
+  allowedWarehouses.forEach(wh => {
     const opt = document.createElement('option');
     opt.value = wh.id;
     opt.textContent = wh.name;
     if (wh.id === selectedWhId) opt.selected = true;
     inputLocationWarehouse.appendChild(opt);
   });
-  // Trigger rack population for the pre-selected warehouse
-  populateRackDropdown(selectedWhId);
+
+  if (currentUser && currentUser.role === 'Staff Admin' && !selectedWhId) {
+    inputLocationWarehouse.value = 'wh-1';
+    populateRackDropdown('wh-1');
+  } else {
+    // Trigger rack population for the pre-selected warehouse
+    populateRackDropdown(selectedWhId);
+  }
 }
 
 // Populate the Rak dropdown based on selected warehouse
@@ -799,6 +819,12 @@ function renderInventoryTable() {
 
   // Perform filtration
   const filteredItems = items.filter(item => {
+    // 0. Staff Admin Access Restriction: Only Gudang 1 (wh-1)
+    if (currentUser && currentUser.role === 'Staff Admin') {
+      const { whId } = parseLocationString(item.location);
+      if (whId !== 'wh-1') return false;
+    }
+
     // 1. Search Query Match
     const matchesSearch = item.name.toLowerCase().includes(searchVal) || item.sku.toLowerCase().includes(searchVal);
     
@@ -820,7 +846,10 @@ function renderInventoryTable() {
 
   // Display counters
   filteredCount.textContent = filteredItems.length;
-  totalCount.textContent = items.length;
+  const staffItemsCount = (currentUser && currentUser.role === 'Staff Admin') 
+    ? items.filter(item => parseLocationString(item.location).whId === 'wh-1').length 
+    : items.length;
+  totalCount.textContent = staffItemsCount;
 
   if (filteredItems.length === 0) {
     inventoryTableBody.innerHTML = `
@@ -1510,6 +1539,22 @@ function renderHistoryTable() {
   const endVal = historyEndDate ? historyEndDate.value : '';
 
   const filteredTx = transactions.filter(tx => {
+    // 0. Staff Admin Access Restrictions
+    if (currentUser && currentUser.role === 'Staff Admin') {
+      // Only allowed to see type === 'out' (barang keluar)
+      if (tx.type !== 'out') return false;
+      
+      // Only allowed to see items belonging to Gudang 1 (wh-1)
+      const item = items.find(i => i.id === tx.itemId);
+      if (item) {
+        const { whId } = parseLocationString(item.location);
+        if (whId !== 'wh-1') return false;
+      } else {
+        // Hide if item is not found in local active inventory to be safe
+        return false;
+      }
+    }
+
     // 1. Search filter (Item Name or Document Number)
     const txDocNo = tx.docNo || tx.id;
     const matchesSearch = tx.itemName.toLowerCase().includes(searchVal) || txDocNo.toLowerCase().includes(searchVal);
@@ -2021,10 +2066,15 @@ async function checkSession() {
     const activeTab = activeTabBtn ? activeTabBtn.getAttribute('data-tab') : 'dashboard';
 
     if (currentUser.role === 'Staff Admin') {
-      // Staff can only access: inventory, stockin, stockout
+      // Staff can only access: inventory, stockout, history
       if (activeTab === 'dashboard' || activeTab === 'warehouse' || activeTab === 'users') {
         const invTabBtn = document.getElementById('menu-inventory-link');
         if (invTabBtn) invTabBtn.click();
+      }
+      // Lock history filter to OUT for Staff Admin
+      if (historyFilterType) {
+        historyFilterType.value = 'out';
+        historyFilterType.disabled = true;
       }
     } else if (currentUser.role === 'Supervisor') {
       // Supervisor cannot access: users
@@ -2032,8 +2082,14 @@ async function checkSession() {
         const dashTabBtn = document.getElementById('menu-dashboard-link');
         if (dashTabBtn) dashTabBtn.click();
       }
+      if (historyFilterType) {
+        historyFilterType.disabled = false;
+      }
     } else {
       // Manager has access to everything
+      if (historyFilterType) {
+        historyFilterType.disabled = false;
+      }
     }
 
     updateUI();
